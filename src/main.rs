@@ -6,7 +6,13 @@ struct ReturnCallback {
 
 fn main() {
 
-    const MAX_ITERATION: u64 = 1000000;
+    /*
+    let context = 0;
+    flow_a(context);
+    std::process::exit(0);
+    */
+
+    const MAX_ITERATION: u64 = 5;
     
     let mut i = 0;
     
@@ -15,13 +21,13 @@ fn main() {
 
     let mut context = "999";
 
-    println!("Init context: {}", context);
+    println!("Init context: {context}");
 
     let mut callback: ahash::AHashMap<String, Vec<ReturnCallback>> = ahash::AHashMap::new();
 
     loop {
         i += 1;
-        println!("{}", i);
+        println!("{i}");
         if active_flow == "A" {
             
             if active_task == 1 {
@@ -84,17 +90,14 @@ fn main() {
                 
                 // No more condition arrows to continue                
                 // before the end of the program. check if there are pending callbacks to return.
-                match execute_callback(&mut callback, "A".to_string()) {
-                    Some(last_callback) => {
-                        println!("  Flow A - execute_callback()");
+                if let Some(last_callback) = execute_callback(&mut callback, "A".to_string()) {
+                    println!("  Flow A - execute_callback()");
 
-                        active_flow = last_callback.0;
-                        active_task = last_callback.1;
+                    active_flow = last_callback.0;
+                    active_task = last_callback.1;
 
-                        // End of task with pending callback to continue
-                        continue;
-                    },
-                    None => {},
+                    // End of task with pending callback to continue
+                    continue;
                 }
                 // End of flow.
                 break;
@@ -159,17 +162,14 @@ fn main() {
 
                 // No more condition arrows to continue                
                 // before the end of the program. check if there are pending callbacks to return.
-                match execute_callback(&mut callback, "B".to_string()) {
-                    Some(last_callback) => {
-                        println!("  Flow B - execute_callback()");
+                if let Some(last_callback) = execute_callback(&mut callback, "B".to_string()) {
+                    println!("  Flow B - execute_callback()");
 
-                        active_flow = last_callback.0;
-                        active_task = last_callback.1;
+                    active_flow = last_callback.0;
+                    active_task = last_callback.1;
 
-                        // End of task with pending callback to continue
-                        continue;
-                    },
-                    None => {},
+                    // End of task with pending callback to continue
+                    continue;
                 }
                 // End of flow.
                 break;
@@ -196,17 +196,14 @@ fn main() {
 
                 // No more condition arrows to continue                
                 // before the end of the program. check if there are pending callbacks to return.
-                match execute_callback(&mut callback, "B".to_string()) {
-                    Some(last_callback) => {
-                        println!("  Flow B - execute_callback()");
+                if let Some(last_callback) = execute_callback(&mut callback, "B".to_string()) {
+                    println!("  Flow B - execute_callback()");
 
-                        active_flow = last_callback.0;
-                        active_task = last_callback.1;
+                    active_flow = last_callback.0;
+                    active_task = last_callback.1;
 
-                        // End of task with pending callback to continue
-                        continue;
-                    },
-                    None => {},
+                    // End of task with pending callback to continue
+                    continue;
                 }
                 // End of flow.
                 break;
@@ -216,23 +213,19 @@ fn main() {
         break; // end
     }
 
-    println!("End context: {}!", context);
+    println!("End context: {context}!");
 }
 
 fn wait_callback(callback: &mut ahash::AHashMap<String, Vec<ReturnCallback>>, flow: String) -> bool {
     // Check if the invoked flow has already returned a finished status.
     // If I have a status of finished I can continue with the evaluation of the next task.
-    match callback.get_mut(&flow) {
-        Some(callback_flow) => match callback_flow.last() {
-            Some(last_callback) => {
-                if last_callback.status {
-                    callback_flow.pop();
-                    return true;
-                }
+    if let Some(callback_flow) = callback.get_mut(&flow) {
+        if let Some(last_callback) = callback_flow.last() {
+            if last_callback.status {
+                callback_flow.pop();
+                return true;
             }
-            None => {}
-        },
-        None => {}
+        }
     };
 
     false
@@ -245,8 +238,8 @@ fn register_callback(callback: &mut ahash::AHashMap<String, Vec<ReturnCallback>>
         Some(callback_flow) => {
             callback_flow.push(ReturnCallback {
                 status: false,
-                return_to_flow: return_to_flow,
-                return_to_task: return_to_task,
+                return_to_flow,
+                return_to_task,
             });
         }
         None => {
@@ -254,8 +247,8 @@ fn register_callback(callback: &mut ahash::AHashMap<String, Vec<ReturnCallback>>
                 flow,
                 vec![ReturnCallback {
                     status: false,
-                    return_to_flow: return_to_flow,
-                    return_to_task: return_to_task,
+                    return_to_flow,
+                    return_to_task,
                 }],
             );
         }
@@ -264,18 +257,72 @@ fn register_callback(callback: &mut ahash::AHashMap<String, Vec<ReturnCallback>>
 
 fn execute_callback(callback: &mut ahash::AHashMap<String, Vec<ReturnCallback>>, flow: String) -> Option<(String, u64)> {
     
-    match callback.get_mut(&flow) {
-        Some(callback_flow) => {
-            match callback_flow.last_mut() {
-                Some(last_callback) => {
-                    last_callback.status = true;
-                    return Some((last_callback.return_to_flow.to_string(), last_callback.return_to_task));
-                }
-                None => {}
-            }
+    if let Some(callback_flow) = callback.get_mut(&flow) {
+        if let Some(last_callback) = callback_flow.last_mut() {
+            last_callback.status = true;
+            return Some((last_callback.return_to_flow.to_string(), last_callback.return_to_task));
         }
-        None => {}
     }
 
     None    
 }
+
+/* 
+fn flow_a_task_1(){
+    println!("  Flow A - Task 01!");
+}
+fn flow_a_task_2(context: u64){
+    println!("  Flow A - Task 02!");
+    flow_b(context);
+
+}
+fn flow_a_task_3(){
+    println!("  Flow A - Task 03!");
+}
+fn flow_b_task_1(){
+    println!("  Flow B - Task 01!");
+    
+}
+fn flow_b_task_2(context: u64){
+    println!("  Flow B - Task 02!");
+    flow_a(context);
+}
+fn flow_b_task_3(){
+    println!("  Flow B - Task 03!");
+}
+fn flow_b_task_4(){
+    println!("  Flow B - Task 04!");
+}
+fn flow_b_task_5(){
+    println!("  Flow B - Task 05!");
+}
+
+fn flow_a(mut context: u64){
+    flow_a_task_1();
+    
+    context += 1;
+
+    if context == 500000 {
+        flow_a_task_3();
+    }else{
+        flow_a_task_2(context);
+        flow_a_task_3();
+    }
+}
+fn flow_b(context: u64){
+
+    flow_b_task_1();
+
+    if context == 3 {
+        flow_b_task_3();
+    }else{
+        flow_b_task_2(context);
+        if context == 500000 {
+            flow_b_task_3();
+        }else{
+            flow_b_task_4();
+            flow_b_task_5();
+        }
+    }
+}
+*/
